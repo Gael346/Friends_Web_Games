@@ -11,6 +11,7 @@
     </head>
     <body>
 
+        <!-- Navebar -->
         <div class="navbar bg-1 fg-2" data-bs-theme="dark">
             <div class="nav-overflow" data-bs-toggle="nav-overflow">
                 <ul class="ms-4 nav nav-underline">
@@ -18,7 +19,7 @@
                         <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" aria-current="page" href="/">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Create Room</a>
+                        <a class="nav-link {% if request.url.path == '/create_room_form' %}active{% endif %}" href="/create_room_form">Create Room</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.url.path == '/register_form' %}active{% endif %}" href="/register_form">Register</a>

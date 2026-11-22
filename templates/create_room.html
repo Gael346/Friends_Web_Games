@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block title %}Create room{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+    <form action="/create_room" , method="post">
+        <!-- Room name -->
+        <div class="col-7 mb-5">
+            <label for="room_name" class="form-label mb-2">Room name</label>
+            <input type="text" name="room_name" class="form-control" id="room_name" placeholder="Ex: MyRoom">
+        </div>
+        <!-- Number of persons -->
+        <div class="col-7 mb-5">
+            <label for="rangeinp" class="form-label">Max persons</label>
+            <div class="form-range theme-success" data-bs-bubble>
+                <input type="range" name="player_num" class="form-range-input" min="0" max="6" step="1" value="4" id="rangeinp">
+            </div>
+        </div>
+        <!-- Number of minigames -->
+        <div class="col-7 mb-5">
+            <label for="minigames_num" class="form-label mb-2">Number of Minigames</label>
+            <input type="number" name="minigames_num" class="form-control" id="minigames_num" min="0" max="10" placeholder="Ex: 3">
+        </div>
+        <button class="btn-solid theme-accent mt-4">Sumbit</button>
+    </form>
+    </div>
+        
+</div>
+{% endblock %}

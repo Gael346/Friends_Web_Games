@@ -15,11 +15,21 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
-
 @app.get("/")
 async def main(request: Request):
     id = request.cookies.get("id")
     return templates.TemplateResponse(request=request , name="index.html", context=locals())
+
+
+@app.get("/create_room_form")
+def create_room_form(request : Request):
+    return templates.TemplateResponse(request=request , name="create_room.html")
+
+@app.post("/create_room")
+def create_room(request: Request, room_name: str = Form(default="MyRoom") , player_num: int = Form(default=4) , minigames_num : int = Form(default=3)):
+    print(room_name , player_num , minigames_num)
+    pass
+
 
 @app.get("/login_form")
 async def login_form(request : Request):

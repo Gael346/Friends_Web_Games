@@ -1,11 +1,12 @@
-from fastapi import FastAPI , WebSocket , WebSocketDisconnect , HTTPException , Request , Form
 from werkzeug.security import check_password_hash, generate_password_hash
+from fastapi import FastAPI , WebSocket , WebSocketDisconnect , HTTPException , Request , Form 
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import sqlite3 
+import sqlite3
 
 # Database 
-conn = sqlite3.connect("messenger.db" , check_same_thread=False)
+conn = sqlite3.connect("database.db" , check_same_thread=False)
 db = conn.cursor()
 
 # FastApi config 
@@ -17,12 +18,65 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/")
 async def main(request: Request):
-    return templates.TemplateResponse(request=request , name="index.html")
+    id = request.cookies.get("id")
+    return templates.TemplateResponse(request=request , name="index.html", context=locals())
 
+@app.get("/login_form")
+async def login_form(request : Request):
+    return templates.TemplateResponse(request=request , name="login.html")
+
+@app.post("/login")
+async def login(request : Request , username: str = Form(default="") , password : str = Form(default="")):
+    # Check Inputs 
+    if not username or not password:
+        return RedirectResponse(url="/login_form", status_code=303)
+
+    # Check username and password are corrects
+    db.execute("SELECT * FROM users WHERE user_name = ?", (username,))
+    users_db = db.fetchall()
+    if len(users_db) != 1:
+        return RedirectResponse(url="/login_form", status_code=303)
+
+    # Check password
+    id , username_db , password_db = users_db[0]
+    if check_password_hash(password_db , password ) == False:
+        return RedirectResponse(url="/login_form", status_code=303)
+    
+    # Set the cookie
+    redirect = RedirectResponse(url='/' , status_code=303) 
+    redirect.set_cookie(key="id", value=id)
+    return redirect
+
+
+# The regist form 
 @app.get("/register_form")
 async def register_form(request : Request):
     return templates.TemplateResponse(request=request , name="register.html")
 
+# For insert dates 
 @app.post("/register")
-async def register(request : Request , username: str = Form() , password : str = Form()):
-    return templates.TemplateResponse(request=request , name="index.html")
+async def register(request : Request , username: str = Form(default="") , password : str = Form(default="") , confirm_password : str = Form(default="")):
+
+    # Check Inputs 
+    if not username or not password:
+        return RedirectResponse(url="/register_form", status_code=303)
+    elif password != confirm_password:    
+        return RedirectResponse(url="/register_form", status_code=303)
+
+    # Check username don't exist 
+    db.execute("SELECT * FROM users WHERE user_name = ?", (username,))
+    users_db = db.fetchall()
+    if len(users_db) != 0:
+        return RedirectResponse(url="/register_form", status_code=303)
+
+    #Insert username ans password hashed
+    db.execute("INSERT INTO users(user_name , password) VALUES(?,?)" , (username , generate_password_hash(password)))
+    conn.commit()
+
+    # Add cookie and redirect
+    db.execute("SELECT id FROM users WHERE user_name = ?" , (username,))
+    id = db.fetchall()[0][0]
+    redirect = RedirectResponse(url='/' , status_code=303) 
+    redirect.set_cookie(key="id", value=id)
+    return redirect
+

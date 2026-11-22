@@ -3,7 +3,9 @@ from fastapi import FastAPI , WebSocket , WebSocketDisconnect , HTTPException , 
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import websockets
 import sqlite3
+import random 
 
 # Database 
 conn = sqlite3.connect("database.db" , check_same_thread=False)
@@ -20,15 +22,90 @@ async def main(request: Request):
     id = request.cookies.get("id")
     return templates.TemplateResponse(request=request , name="index.html", context=locals())
 
+# Rooms structure 
+rooms = { str : { 
+    "dates" : {},
+    "conected" : {
+        "username" : {
+            "websocket" : WebSocket ,
+            "info" : {}
+        }
+    }
+}}
+
+
+@app.get("/join_room_form")
+def join_room_form(request : Request):
+    return templates.TemplateResponse(request=request , name="join_room.html")
+
+# Chek code and render the template for join to the room
+@app.post("/join_room")
+def join_room(request : Request , code : str = Form(default="")):
+    if code in rooms:
+         return templates.TemplateResponse(request=request ,  name="room.html" , context={
+                "code" : code,
+                "room_name" : rooms[code]["dates"]["room_name"],
+                # Id is temporal , then i have to get the username of the id and works better
+                "username" : request.cookies.get("id")
+            })
+    return RedirectResponse(url="/join_room_form" , status_code=303)
+
 
 @app.get("/create_room_form")
 def create_room_form(request : Request):
     return templates.TemplateResponse(request=request , name="create_room.html")
 
+# Create a room with the data recived
 @app.post("/create_room")
-def create_room(request: Request, room_name: str = Form(default="MyRoom") , player_num: int = Form(default=4) , minigames_num : int = Form(default=3)):
-    print(room_name , player_num , minigames_num)
-    pass
+def create_room(request: Request, room_name: str = Form(default="MyRoom") , players_num: int = Form(default=4) , minigames_num : int = Form(default=3)):
+    # Generate code and chek is new 
+    code = str(random.randint(1000 , 9999))
+    if not code in rooms:
+        rooms[code] = {}
+        rooms[code]["dates"] = {
+            "room_name" : room_name,
+            "players_num" : players_num,
+            "minigames_num" : minigames_num
+        } 
+        rooms[code]["conected"] = {}
+
+    return templates.TemplateResponse(request=request ,  name="room.html" , context={
+        "code" : code,
+        "room_name" : room_name,
+        "username" : request.cookies.get("id")
+    })
+
+@app.websocket("/ws/{code}/{username}")
+async def conections(websocket : WebSocket , code : str , username : str):
+
+    # Check room is valid
+    if not code in rooms:
+       await websocket.close()
+       return
+
+    # Insert user into the room
+    await websocket.accept()
+    rooms[code]["conected"][username] = {
+        "websocket" : websocket ,
+        "info" : 
+        {
+            "points" : 0,
+        }
+    }
+
+    try :
+        # Recive and send data
+        while True: 
+            recive_data = await websocket.receive_json()
+
+            for user , data in rooms[code]["conected"].items():
+                await data["websocket"].send_json({
+                    "msg": recive_data["msg"]
+                })
+
+    except WebSocketDisconnect:
+        # If user disconects , eliminate it 
+        del rooms[code]["conected"][username]
 
 
 @app.get("/login_form")

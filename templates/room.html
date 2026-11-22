@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}Room{% endblock %}
+
+{% block body %}
+ <h1>{{room_name}}</h1>
+ <h3 id="code">{{code}}</h3>
+ <!-- Temporal sistem -->
+ <input type="text" class="form-control" id="input1">
+ <input type="text" id="username" hidden value="{{username}}">
+ <button class="btn" onclick="send()">Sumbit</button>
+ <ul id="list">
+    
+ </ul>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Get the code and username
+    const code = document.getElementById("code").innerHTML;
+    const username = document.getElementById("username").value;
+    // Create the websocket
+    const ws = new WebSocket(`ws://${location.host}/ws/${code}/${username}`);
+
+    // Function to get the info
+    function connect()
+    {
+        ws.onmessage = function(event){
+            // Insert message recived into the ul
+            var message = document.getElementById("list")
+            var li = document.createElement("li");
+            // The message is a try for check if it works , the real sistem is with JSON and resposes for questions , or points ...
+            li.textContent = JSON.parse(event.data).msg;
+            message.appendChild(li);
+        }    
+    }
+
+    // Function to send the info 
+    function send(event){
+        var input = document.getElementById("input1")
+        ws.send(JSON.stringify({
+            "msg":input.value
+        }));
+    }
+    
+    connect()
+</script>
+{% endblock %}s

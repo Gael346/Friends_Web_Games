@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block title %}Join Room{% endblock%}
+
+{% block body %}
+<div class="mt-4 ms-6">
+    <form action="/join_room" method="post">
+        <div class="otp" data-bs-otp>
+            <input type="text" class="otp-input" maxlength="4" name="code">
+        </div>
+    </form>
+</div>
+{% endblock %}

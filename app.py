@@ -33,7 +33,7 @@ rooms = { str : {
     }
 }}
 
-
+2
 @app.get("/join_room_form")
 def join_room_form(request : Request):
     return templates.TemplateResponse(request=request , name="join_room.html")
@@ -42,12 +42,20 @@ def join_room_form(request : Request):
 @app.post("/join_room")
 def join_room(request : Request , code : str = Form(default="")):
     if code in rooms:
-         return templates.TemplateResponse(request=request ,  name="room.html" , context={
-                "code" : code,
-                "room_name" : rooms[code]["dates"]["room_name"],
-                # Id is temporal , then i have to get the username of the id and works better
-                "username" : request.cookies.get("id")
-            })
+
+        # Get username 
+        db.execute("SELECT user_name FROM users WHERE id = ?" , (request.cookies.get("id"),))
+        users_db = db.fetchall()
+        if len(users_db) != 1:
+          return RedirectResponse(url="/register_form" , status_code=303)
+        username = users_db[0][0]
+
+        return templates.TemplateResponse(request=request ,  name="room.html" , context={
+            "code" : code,
+            "room_name" : rooms[code]["dates"]["room_name"],
+            "username" : username ,
+            "users" : list(rooms[code]["conected"].keys())
+        })
     return RedirectResponse(url="/join_room_form" , status_code=303)
 
 
@@ -69,10 +77,19 @@ def create_room(request: Request, room_name: str = Form(default="MyRoom") , play
         } 
         rooms[code]["conected"] = {}
 
+    # Get username 
+    db.execute("SELECT user_name FROM users WHERE id = ?" , (request.cookies.get("id"),))
+    users_db = db.fetchall()
+    if len(users_db) != 1:
+        return RedirectResponse(url="/register_form" , status_code=303)
+    username = users_db[0][0]
+
+    print(list(rooms[code]["conected"].keys()))
     return templates.TemplateResponse(request=request ,  name="room.html" , context={
         "code" : code,
         "room_name" : room_name,
-        "username" : request.cookies.get("id")
+        "username" : username ,
+        "users" : [] 
     })
 
 @app.websocket("/ws/{code}/{username}")
@@ -93,14 +110,23 @@ async def conections(websocket : WebSocket , code : str , username : str):
         }
     }
 
+    # Insert user in : users conected card 
+    for user , data in rooms[code]["conected"].items():
+                await data["websocket"].send_json({
+                    "type" : "join",
+                    "value" : username
+                })
+
     try :
         # Recive and send data
         while True: 
             recive_data = await websocket.receive_json()
+            print(recive_data)
 
             for user , data in rooms[code]["conected"].items():
                 await data["websocket"].send_json({
-                    "msg": recive_data["msg"]
+                    "type" : recive_data["type"],
+                    "value" : recive_data["value"]
                 })
 
     except WebSocketDisconnect:

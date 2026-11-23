@@ -3,16 +3,31 @@
 {% block title %}Room{% endblock %}
 
 {% block body %}
- <h1>{{room_name}}</h1>
- <h3 id="code">{{code}}</h3>
- <!-- Temporal sistem -->
- <input type="text" class="form-control" id="input1">
- <input type="text" id="username" hidden value="{{username}}">
- <button class="btn" onclick="send()">Sumbit</button>
- <ul id="list">
-    
- </ul>
+<div class="ms-3 mt-5">
+    <div class="row"> 
+        <div class="mb-5">
+            <div class="fs-5xl">{{room_name}}</div>
+            <h3>Code: <span id="code" class="badge theme-accent">{{code}}</span></h3>
+            <input type="text" id="username" hidden value="{{username}}">
+        </div>
+        <!-- Users connected field -->
+        <div class="col-3 vh-100">
+            <div class="card theme-success h-75">
+                <h5 class="card-header">Users Connected</h5>
+                <div class="card-body" id="card_users">
+                    {% for user in users %}
+                    <p>{{user}}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-9">
+            <!-- Insert chat button and more -->
+        </div>
+    </div>
+</div>
 {% endblock %}
+
 
 {% block script %}
 <script>
@@ -26,12 +41,22 @@
     function connect()
     {
         ws.onmessage = function(event){
-            // Insert message recived into the ul
-            var message = document.getElementById("list")
-            var li = document.createElement("li");
-            // The message is a try for check if it works , the real sistem is with JSON and resposes for questions , or points ...
-            li.textContent = JSON.parse(event.data).msg;
-            message.appendChild(li);
+
+            const data = JSON.parse(event.data);
+            var value = data.value;
+            var type = data.type;
+
+            if(type == "join"){
+                var legend = document.getElementById("card_users")
+                var p = document.createElement("p");
+                p.innerHTML = value;
+                legend.appendChild(p);
+            }
+            else if(type == "message")
+            {
+
+            }
+
         }    
     }
 
@@ -39,7 +64,8 @@
     function send(event){
         var input = document.getElementById("input1")
         ws.send(JSON.stringify({
-            "msg":input.value
+            "type" : "message",
+            "value" : input.value
         }));
     }
     

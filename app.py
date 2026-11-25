@@ -6,12 +6,35 @@ from fastapi.templating import Jinja2Templates
 import websockets
 import sqlite3
 import random 
+from enum import Enum
+
+class State(Enum):
+    START = 1,
+    VOTE = 2,
+    RANKING = 3,
+    CHANGE = 4,
+    GAME1 = 5,
+    GAME2 = 6
+
+
+class roomManager():
+    def __init__(self, room_name:str , players_num:int , minigames_num:int ):
+        self.room_name = room_name
+        self.players_num = players_num
+        self.minigames = minigames_num
+        self.state = State.START
+
+    def change_state(self , new_state : State):
+        if self.state == State.CHANGE:
+            self.state = new_state
+
+
 
 # Database 
 conn = sqlite3.connect("database.db" , check_same_thread=False)
 db = conn.cursor()
 
-# FastApi config 
+# FastApi configs
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -24,7 +47,7 @@ async def main(request: Request):
 
 # Rooms structure 
 rooms = { str : { 
-    "dates" : {},
+    "dates" : roomManager,
     "conected" : {
         "username" : {
             "websocket" : WebSocket ,
@@ -33,7 +56,6 @@ rooms = { str : {
     }
 }}
 
-2
 @app.get("/join_room_form")
 def join_room_form(request : Request):
     return templates.TemplateResponse(request=request , name="join_room.html")
@@ -52,7 +74,7 @@ def join_room(request : Request , code : str = Form(default="")):
 
         return templates.TemplateResponse(request=request ,  name="room.html" , context={
             "code" : code,
-            "room_name" : rooms[code]["dates"]["room_name"],
+            "room_name" : rooms[code]["dates"].room_name,
             "username" : username ,
             "users" : list(rooms[code]["conected"].keys())
         })
@@ -70,11 +92,8 @@ def create_room(request: Request, room_name: str = Form(default="MyRoom") , play
     code = str(random.randint(1000 , 9999))
     if not code in rooms:
         rooms[code] = {}
-        rooms[code]["dates"] = {
-            "room_name" : room_name,
-            "players_num" : players_num,
-            "minigames_num" : minigames_num
-        } 
+        roomMan = roomManager(room_name , players_num , minigames_num)
+        rooms[code]["dates"] = roomMan
         rooms[code]["conected"] = {}
 
     # Get username 

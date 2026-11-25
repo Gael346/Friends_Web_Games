@@ -3,17 +3,34 @@
 {% block title %}Room{% endblock %}
 
 {% block body %}
-<div class="ms-3 mt-5">
+<div class="ms-5 mt-5">
     <div class="row"> 
         <div class="mb-5">
             <div class="fs-5xl">{{room_name}}</div>
             <h3>Code: <span id="code" class="badge theme-accent">{{code}}</span></h3>
             <input type="text" id="username" hidden value="{{username}}">
         </div>
-        <!-- Users connected field -->
         <div class="col-3 vh-100">
-            <div class="card theme-success h-75">
-                <h5 class="card-header">Users Connected</h5>
+            <!--Chat-->
+            <button class="btn-solid theme-inverse mb-3" type="button" data-bs-toggle="drawer" data-bs-target="#drawerScrolling">Show Chat</button>
+            <dialog class="drawer drawer-start w-25" data-bs-scroll="true" data-bs-backdrop="false" id="drawerScrolling">
+                <div class="drawer-header">
+                    <h5 class="drawer-title" id="drawerScrollingLabel">Chat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="drawer" aria-label="Close"></button>
+                </div>
+                <div class="drawer-body" id="messeger">
+                    <!-- Here go the messages -->
+                </div>
+                 <div class="drawer-footer">
+                    <div class="input-group">
+                        <input type="text" required name="message" id="sender" class="form-control" placeholder="Send something for friends...">
+                        <button type="submit" class="btn btn-solid theme-accent" onclick="send()">Send</button>
+                    </div>
+                </div>
+            </dialog>
+            <!-- Users connected field -->
+            <div class="card theme-success h-50">
+                <h5 class="card-header">Ranking</h5>
                 <div class="card-body" id="card_users">
                     {% for user in users %}
                     <p>{{user}}</p>
@@ -47,14 +64,19 @@
             var type = data.type;
 
             if(type == "join"){
-                var legend = document.getElementById("card_users")
+                var legend = document.getElementById("card_users");
                 var p = document.createElement("p");
                 p.innerHTML = value;
                 legend.appendChild(p);
             }
             else if(type == "message")
             {
-
+                var user = data.value.user;
+                var message = data.value.message;
+                var messeger = document.getElementById("messeger");
+                var div = document.createElement("div")
+                div.innerHTML = `<b>${user}:</b> ${message}`;
+                messeger.appendChild(div);
             }
 
         }    
@@ -62,13 +84,13 @@
 
     // Function to send the info 
     function send(event){
-        var input = document.getElementById("input1")
+        var input = document.getElementById("sender")
         ws.send(JSON.stringify({
             "type" : "message",
-            "value" : input.value
+            "value" : {"message" : input.value, "user" : username}
         }));
     }
     
     connect()
 </script>
-{% endblock %}s
+{% endblock %}

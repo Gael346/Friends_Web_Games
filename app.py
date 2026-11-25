@@ -22,6 +22,7 @@ class roomManager():
         self.room_name = room_name
         self.players_num = players_num
         self.minigames = minigames_num
+        self.playing = 0
         self.state = State.START
 
     def change_state(self , new_state : State):
@@ -103,7 +104,6 @@ def create_room(request: Request, room_name: str = Form(default="MyRoom") , play
         return RedirectResponse(url="/register_form" , status_code=303)
     username = users_db[0][0]
 
-    print(list(rooms[code]["conected"].keys()))
     return templates.TemplateResponse(request=request ,  name="room.html" , context={
         "code" : code,
         "room_name" : room_name,
@@ -115,7 +115,7 @@ def create_room(request: Request, room_name: str = Form(default="MyRoom") , play
 async def conections(websocket : WebSocket , code : str , username : str):
 
     # Check room is valid
-    if not code in rooms:
+    if not code in rooms or rooms[code]["dates"].playing >= rooms[code]["dates"].players_num:
        await websocket.close()
        return
 
@@ -125,9 +125,10 @@ async def conections(websocket : WebSocket , code : str , username : str):
         "websocket" : websocket ,
         "info" : 
         {
-            "points" : 0,
+            "points" : 0
         }
     }
+    rooms[code]["dates"].playing += 1
 
     # Insert user in : users conected card 
     for user , data in rooms[code]["conected"].items():
@@ -140,7 +141,6 @@ async def conections(websocket : WebSocket , code : str , username : str):
         # Recive and send data
         while True: 
             recive_data = await websocket.receive_json()
-            print(recive_data)
 
             for user , data in rooms[code]["conected"].items():
                 await data["websocket"].send_json({
